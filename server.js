@@ -31,6 +31,10 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
     process.exit(1);
   });
 
+app.get("/", (req, res) => {
+  res.send("Backend de Bears Travel funcionando correctamente");
+});
+
 // Registro
 app.post('/api/register', async (req, res) => {
   const { name, email, password } = req.body;
