@@ -1,4 +1,3 @@
-// AgenciaViajes-API/server.js
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,11 +6,30 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 
+
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_ORIGIN || 'https://master.d1heqwiehxskxp.amplifyapp.com/',
+  methods: ['GET','POST','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI);
+// Validar MONGO_URI
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error('ERROR: MONGO_URI no está definida en las variables de entorno.');
+  // Hacemos que el back falle en AWS para que el deploy marque error y se arregle con la variable.
+  process.exit(1);
+}
+
+// Conectar a MongoDB con manejo de errores
+mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Conectado a MongoDB'))
+  .catch(err => {
+    console.error('Error al conectar a MongoDB:', err);
+    process.exit(1);
+  });
 
 // Registro
 app.post('/api/register', async (req, res) => {
@@ -34,8 +52,7 @@ app.post('/api/login', async (req, res) => {
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(400).json({ error: 'Contraseña incorrecta' });
 
-  // Puedes usar JWT para autenticar
-  const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '2h' });
+  const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '2h' });
   res.json({ message: 'Login exitoso', token, user: { name: user.name, email: user.email } });
 });
 
